@@ -1,0 +1,104 @@
+body {
+    background-color: #1a1a1a;
+    color: white;
+    font-family: Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+}
+
+.card {
+    background-color: #2d2d2d;
+    border-radius: 10px;
+    padding: 20px;
+    width: 300px;
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-direction: column;
+    font-size: 1.2em;
+    font-weight: bold;
+}
+
+.avatar {
+    width: 50px;
+    height: 50px;
+    margin-right: 15px;
+}
+
+.name {
+    flex-grow: 1;
+    text-align: center;
+}
+
+.link {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 15px;
+    margin: 10px 0;
+    border-radius: 8px;
+    text-decoration: none;
+    color: white;
+    font-weight: bold;
+    font-family: Arial, sans-serif;
+    font-size: initial;
+}
+
+.link img {
+    width: 24px;
+    height: 24px;
+    margin-right: 10px;
+}
+
+.telegram {
+    background-color: #229ED9;
+}
+
+.github {
+    background-color: #333;
+}
+
+.vk {
+    background-color: #4C75A3;
+}
+
+.email {
+    background-color: #404040;
+}
+
+.site {
+    background-color: #fd973c;
+}
+
+.caption {
+    font-size: 14px;
+    color: #666;
+    text-align: center;
+    margin-top: 5px;
+}
+
+.logo {
+    margin-right: 10px;
+}
+
+.contact_button {
+    background-color: #5cb85c;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 15px;
+    margin: 10px 0;
+    border-radius: 8px;
+    text-decoration: none;
+    color: white;
+    font-weight: bold;
+    font-family: Arial, sans-serif;
+    font-size: initial;
+    width: 100%;
+}

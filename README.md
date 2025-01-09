@@ -1,4 +1,3 @@
-```markdown
 ---
 title: "Визитка-сайт Kelll31"
 layout: "default"

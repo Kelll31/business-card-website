@@ -1,17 +1,21 @@
 function addContact() {
-    if (navigator.contacts && navigator.contacts.save) {
-        const contact = {
-            name: 'Куприков Алексей | Интелком',
-            email: 'kuprikov@rosintelcom.ru',
-            tel: '+7 (915) 200-99-55',
-            address: 'г.Тула, пр-т Ленина, 77, офис 505'
-        };
-        navigator.contacts.save(contact).then(() => {
-            alert('Контакт успешно добавлен!');
-        }).catch((error) => {
-            alert('Ошибка при добавлении контакта: ' + error);
-        });
-    } else {
-        alert('Ваше устройство не поддерживает добавление контактов.');
-    }
+    const vCardData = `
+BEGIN:VCARD
+VERSION:3.0
+FN:Куприков Алексей | Интелком
+EMAIL:kuprikov@rosintelcom.ru
+TEL:+7 (915) 200-99-55
+ADR:;;г.Тула, пр-т Ленина, 77, офис 505
+END:VCARD
+    `;
+
+    const blob = new Blob([vCardData], { type: 'text/vcard' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'contact.vcf';
+    a.click();
+    URL.revokeObjectURL(url);
 }
+
+addContact();

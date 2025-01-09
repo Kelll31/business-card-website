@@ -102,3 +102,12 @@ body {
     font-size: initial;
     width: 100%;
 }
+
+.subtitle {
+    display: block;
+    font-size: 0.8em;
+    color: rgb(210, 210, 210);
+    margin-top: 5px;
+    flex-grow: 1;
+    text-align: center;
+}

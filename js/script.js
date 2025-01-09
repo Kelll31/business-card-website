@@ -18,4 +18,4 @@ END:VCARD
     URL.revokeObjectURL(url);
 }
 
-addContact();
+document.getElementById('addContactButton').addEventListener('click', addContact);

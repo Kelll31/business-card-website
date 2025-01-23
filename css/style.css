@@ -44,6 +44,7 @@ body {
     position: relative;
     transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out, color 0.3s ease-in-out;
     color: #ffffff;
+    
 }
 
 .user_name {

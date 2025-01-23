@@ -39,12 +39,12 @@ body {
     color: #ffffff;
 }
 
-.email_name {
+.email_n {
     white-space: nowrap;
     position: relative;
     transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out, color 0.3s ease-in-out;
     color: #ffffff;
-    
+
 }
 
 .user_name {

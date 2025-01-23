@@ -2,15 +2,25 @@ document.addEventListener("DOMContentLoaded", () => {
     const dropdownButton = document.querySelector(".dropdown-button");
     const dropdownContent = document.querySelector(".dropdown-content");
 
-    dropdownButton.addEventListener("click", () => {
-        dropdownContent.classList.toggle("show");
-    });
+    // Проверяем, существуют ли элементы
+    if (dropdownButton && dropdownContent) {
+        dropdownButton.addEventListener("click", () => {
+            dropdownContent.classList.toggle("show");
+        });
+    } else {
+        console.error("Элементы .dropdown-button или .dropdown-content не найдены в DOM.");
+    }
 });
 
 function toggleEmail(event) {
     event.preventDefault(); // Предотвращаем переход по ссылке
 
     const emailTextElement = document.getElementById('email-text'); // Получаем элемент с текстом почты
+    if (!emailTextElement) {
+        console.error("Элемент с id 'email-text' не найден.");
+        return;
+    }
+
     const originalEmail = emailTextElement.textContent; // Сохраняем оригинальный текст почты
 
     // Копируем текст в буфер обмена

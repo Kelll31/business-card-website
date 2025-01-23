@@ -48,9 +48,10 @@
                 <span class="name">ВКонтакте</span>
             </a>
 
-            <a href="mailto:kuprikov@rosintelcom.ru" class="link email">
+            <a href="#" class="link email" onclick="toggleEmail(event)">
                 <img src="images/email.svg" alt="Email" class="logo">
-                <span class="name">Email</span>
+                <span class="name" id="email-text">kuprikov@rosintelcom.ru</span>
+                <span class="tooltip" id="tooltip">Скопировано!</span>
             </a>
 
             <div class="dropdown">
@@ -61,15 +62,15 @@
                 <div class="dropdown-content">
                     <p>Пентестер.</p>
                     <p>Компетенции:
-                        </br>
+                        <br>
                         WiFi 7/10
-                        </br>
+                        <br>
                         Linux privilege escalation 6/10
-                        </br>
+                        <br>
                         Network exploitation 5/10
-                        </br>
+                        <br>
                         Web exploitation 5/10
-                        </br>
+                        <br>
                         Windows exploitation 2/10</p>
                 </div>
             </div>

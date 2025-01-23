@@ -1,23 +1,3 @@
-function addContact() {
-    const vCardData = `
-BEGIN:VCARD
-VERSION:3.0
-FN:Куприков Алексей | Интелком
-EMAIL:kuprikov@rosintelcom.ru
-TEL:+7 (915) 200-99-55
-ADR:;;г.Тула, пр-т Ленина, 77, офис 505
-END:VCARD
-    `;
-
-    const blob = new Blob([vCardData], { type: 'text/vcard' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'contact.vcf';
-    a.click();
-    URL.revokeObjectURL(url);
-}
-
 document.addEventListener("DOMContentLoaded", () => {
     const dropdownButton = document.querySelector(".dropdown-button");
     const dropdownContent = document.querySelector(".dropdown-content");
@@ -26,3 +6,23 @@ document.addEventListener("DOMContentLoaded", () => {
         dropdownContent.classList.toggle("show");
     });
 });
+
+function toggleEmail(event) {
+    event.preventDefault(); // Предотвращаем переход по ссылке
+
+    const emailText = document.getElementById('email-text').textContent; // Получаем текст почты
+    const tooltip = document.getElementById('tooltip'); // Получаем элемент всплывающего окна
+
+    // Копируем текст в буфер обмена
+    navigator.clipboard.writeText(emailText).then(() => {
+        // Показываем всплывающее окно
+        tooltip.classList.add('show');
+
+        // Скрываем всплывающее окно через 2 секунды
+        setTimeout(() => {
+            tooltip.classList.remove('show');
+        }, 2000);
+    }).catch(err => {
+        console.error('Ошибка при копировании текста: ', err);
+    });
+}

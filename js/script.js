@@ -10,17 +10,17 @@ document.addEventListener("DOMContentLoaded", () => {
 function toggleEmail(event) {
     event.preventDefault(); // Предотвращаем переход по ссылке
 
-    const emailText = document.getElementById('email-text').textContent; // Получаем текст почты
-    const tooltip = document.getElementById('tooltip'); // Получаем элемент всплывающего окна
+    const emailTextElement = document.getElementById('email-text'); // Получаем элемент с текстом почты
+    const originalEmail = emailTextElement.textContent; // Сохраняем оригинальный текст почты
 
     // Копируем текст в буфер обмена
-    navigator.clipboard.writeText(emailText).then(() => {
-        // Показываем всплывающее окно
-        tooltip.classList.add('show');
+    navigator.clipboard.writeText(originalEmail).then(() => {
+        // Меняем текст на "Скопировано!"
+        emailTextElement.textContent = "Скопировано!";
 
-        // Скрываем всплывающее окно через 2 секунды
+        // Возвращаем оригинальный текст через 2 секунды
         setTimeout(() => {
-            tooltip.classList.remove('show');
+            emailTextElement.textContent = originalEmail;
         }, 2000);
     }).catch(err => {
         console.error('Ошибка при копировании текста: ', err);

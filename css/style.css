@@ -32,28 +32,28 @@ body {
 
 .name {
     opacity: 0;
-    /* Текст невидим */
     white-space: nowrap;
     position: absolute;
-    /* Абсолютное позиционирование для перекрытия */
     transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
-    /* Плавное появление текста */
     transform: translateX(20px);
-    /* Смещаем текст вправо изначально */
     color: #ffffff;
-    /* Цвет текста */
+}
+
+.email_name {
+    white-space: nowrap;
+    position: relative;
+    transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out, color 0.3s ease-in-out;
+    color: #ffffff;
 }
 
 .user_name {
     opacity: 1;
-    /* Текст невидим */
     font-size: 18px;
     color: #666;
     text-align: center;
     margin-top: 5px;
     white-space: nowrap;
     color: #ffffff;
-    /* Цвет текста */
     padding-bottom: 5px;
 
 }
@@ -64,47 +64,38 @@ body {
     justify-content: center;
     padding: 15px;
     padding-left: 10px;
-    /* Отступ слева для иконки */
     margin: 10px 0;
     border-radius: 8px;
     text-decoration: none;
     color: #ffffff00;
-    /* Прозрачный текст по умолчанию */
     font-weight: bold;
     font-family: Arial, sans-serif;
     font-size: initial;
     position: relative;
     overflow: hidden;
     transition: all 0.3s ease-in-out;
-    /* Плавный переход */
     flex-direction: column;
-    align-content: center
+    align-content: center;
 }
+
 
 .link img {
     width: 24px;
     height: 24px;
     margin-right: 10px;
     transition: transform 0.3s ease-in-out;
-    /* Плавное движение иконки */
     position: relative;
-    /* Для управления смещением */
     z-index: 1;
-    /* Иконка всегда выше текста */
 }
 
 .link:hover .name {
     opacity: 1;
-    /* Показываем текст */
     transform: translateX(0);
-    /* Возвращаем текст в исходное положение */
     color: #ffffff;
-    /* Цвет текста */
 }
 
 .link:hover img {
     transform: translateX(-115px);
-    /* Иконка сдвигается влево */
 }
 
 .telegram {
@@ -177,12 +168,10 @@ body {
     unicode-bidi: isolate;
 }
 
-/* Контейнер для выпадающего меню */
 .dropdown {
     width: 100%;
 }
 
-/* Кнопка для открытия меню */
 .dropdown-button {
     background-color: #5cb85c;
     display: flex;
@@ -205,22 +194,16 @@ body {
     background-color: #4cae4c;
 }
 
-/* Скрытое содержимое меню */
 .dropdown-content {
     max-height: 0;
-    /* Скрываем содержимое */
     overflow: hidden;
-    /* Скрываем текст, если высота равна 0 */
     background-color: #2d2d2d;
     color: white;
     padding: 0 20px;
-    /* Убираем внутренние отступы, пока меню скрыто */
     border-radius: 10px;
     transition: max-height 0.3s ease, padding 0.3s ease;
-    /* Анимация высоты и отступов */
 }
 
-/* Текст внутри меню */
 .dropdown-content p {
     margin: 10px 0;
     padding: 10px 0;
@@ -231,37 +214,27 @@ body {
     border-bottom: none;
 }
 
-/* Когда меню открыто */
 .dropdown-content.show {
     max-height: 300px;
-    /* Устанавливаем максимальную высоту для открытого меню */
 }
 
 .tooltip {
     position: absolute;
     bottom: 120%;
-    /* Расположение над ссылкой */
     left: 50%;
     transform: translateX(-50%);
-    background-color: #333;
-    /* Цвет фона */
+    background-color: #ffffff;
     color: #fff;
-    /* Цвет текста */
     padding: 5px 10px;
-    /* Отступы */
     border-radius: 5px;
-    /* Скругленные углы */
     font-size: 12px;
-    /* Размер текста */
     opacity: 0;
-    /* Скрыто по умолчанию */
     visibility: hidden;
-    /* Скрыто по умолчанию */
     transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
     /* Плавное появление */
     white-space: nowrap;
     /* Запрет переноса текста */
-    z-index: 10;
+    z-index: 100;
     /* Поверх других элементов */
 }
 

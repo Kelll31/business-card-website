@@ -26,37 +26,57 @@ body {
 }
 
 .avatar {
-    width: 50px;
-    height: 50px;
-    margin-right: 15px;
+    width: 70px;
+    height: 70px;
 }
 
 .name {
-    opacity: 0; /* Текст невидим */
+    opacity: 0;
+    /* Текст невидим */
     white-space: nowrap;
-    position: absolute; /* Абсолютное позиционирование для перекрытия */
-    transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out; /* Плавное появление текста */
-    transform: translateX(20px); /* Смещаем текст вправо изначально */
-    color: #ffffff; /* Цвет текста */
+    position: absolute;
+    /* Абсолютное позиционирование для перекрытия */
+    transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+    /* Плавное появление текста */
+    transform: translateX(20px);
+    /* Смещаем текст вправо изначально */
+    color: #ffffff;
+    /* Цвет текста */
 }
 
+.user_name {
+    opacity: 1;
+    /* Текст невидим */
+    font-size: 18px;
+    color: #666;
+    text-align: center;
+    margin-top: 5px;
+    white-space: nowrap;
+    color: #ffffff;
+    /* Цвет текста */
+    padding-bottom: 5px;
+
+}
 
 .link {
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 15px;
-    padding-left: 10px; /* Отступ слева для иконки */
+    padding-left: 10px;
+    /* Отступ слева для иконки */
     margin: 10px 0;
     border-radius: 8px;
     text-decoration: none;
-    color: #ffffff00; /* Прозрачный текст по умолчанию */
+    color: #ffffff00;
+    /* Прозрачный текст по умолчанию */
     font-weight: bold;
     font-family: Arial, sans-serif;
     font-size: initial;
     position: relative;
     overflow: hidden;
-    transition: all 0.3s ease-in-out; /* Плавный переход */
+    transition: all 0.3s ease-in-out;
+    /* Плавный переход */
     flex-direction: column;
 }
 
@@ -64,19 +84,26 @@ body {
     width: 24px;
     height: 24px;
     margin-right: 10px;
-    transition: transform 0.3s ease-in-out; /* Плавное движение иконки */
-    position: relative; /* Для управления смещением */
-    z-index: 1; /* Иконка всегда выше текста */
+    transition: transform 0.3s ease-in-out;
+    /* Плавное движение иконки */
+    position: relative;
+    /* Для управления смещением */
+    z-index: 1;
+    /* Иконка всегда выше текста */
 }
 
 .link:hover .name {
-    opacity: 1; /* Показываем текст */
-    transform: translateX(0); /* Возвращаем текст в исходное положение */
-    color: #ffffff; /* Цвет текста */
+    opacity: 1;
+    /* Показываем текст */
+    transform: translateX(0);
+    /* Возвращаем текст в исходное положение */
+    color: #ffffff;
+    /* Цвет текста */
 }
 
 .link:hover img {
-    transform: translateX(-115px); /* Иконка сдвигается влево */
+    transform: translateX(-115px);
+    /* Иконка сдвигается влево */
 }
 
 .telegram {
@@ -101,9 +128,9 @@ body {
 
 .caption {
     font-size: 14px;
-    color: #666;
+    color: #ffffff;
     text-align: center;
-    margin-top: 5px;
+    margin-top: 2px;
 }
 
 .logo {
@@ -149,6 +176,61 @@ body {
     unicode-bidi: isolate;
 }
 
+/* Контейнер для выпадающего меню */
+.dropdown {
+    width: 100%;
+}
+
+/* Кнопка для открытия меню */
+.dropdown-button {
+    background-color: #5cb85c;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 15px;
+    margin: 10px 0;
+    border-radius: 8px;
+    text-decoration: none;
+    color: #2d2d2d;
+    font-weight: bold;
+    font-family: Arial, sans-serif;
+    font-size: initial;
+    width: 100%;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.dropdown-button:hover {
+    background-color: #4cae4c;
+}
+
+/* Скрытое содержимое меню */
+.dropdown-content {
+    max-height: 0; /* Скрываем содержимое */
+    overflow: hidden; /* Скрываем текст, если высота равна 0 */
+    background-color: #2d2d2d;
+    color: white;
+    padding: 0 20px; /* Убираем внутренние отступы, пока меню скрыто */
+    border-radius: 10px;
+    transition: max-height 0.3s ease, padding 0.3s ease; /* Анимация высоты и отступов */
+}
+
+/* Текст внутри меню */
+.dropdown-content p {
+    margin: 10px 0;
+    padding: 10px 0;
+    border-bottom: 1px solid #444;
+}
+
+.dropdown-content p:last-child {
+    border-bottom: none;
+}
+
+/* Когда меню открыто */
+.dropdown-content.show {
+    max-height: 300px; /* Устанавливаем максимальную высоту для открытого меню */
+}
+
 *,
 ::after,
 ::before {
@@ -157,12 +239,14 @@ body {
 
 @media (max-width: 768px) {
     .link {
-        justify-content: center; /* Центрируем иконки */
+        justify-content: center;
+        /* Центрируем иконки */
         padding: 10px;
     }
 
     .link img {
-        margin-right: 0; /* Убираем отступы */
+        margin-right: 0;
+        /* Убираем отступы */
     }
 
 }

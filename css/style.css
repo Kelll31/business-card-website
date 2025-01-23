@@ -32,32 +32,51 @@ body {
 }
 
 .name {
-    flex-grow: 1;
-    text-align: center;
+    opacity: 0; /* Текст невидим */
+    white-space: nowrap;
+    position: absolute; /* Абсолютное позиционирование для перекрытия */
+    transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out; /* Плавное появление текста */
+    transform: translateX(20px); /* Смещаем текст вправо изначально */
+    color: #ffffff; /* Цвет текста */
 }
+
 
 .link {
     display: flex;
     align-items: center;
-    justify-content: flex-start;
+    justify-content: center;
     padding: 15px;
+    padding-left: 10px; /* Отступ слева для иконки */
     margin: 10px 0;
     border-radius: 8px;
     text-decoration: none;
-    color: #2d2d2d;
+    color: #ffffff00; /* Прозрачный текст по умолчанию */
     font-weight: bold;
     font-family: Arial, sans-serif;
     font-size: initial;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease-in-out; /* Плавный переход */
+    flex-direction: column;
 }
 
 .link img {
     width: 24px;
     height: 24px;
     margin-right: 10px;
+    transition: transform 0.3s ease-in-out; /* Плавное движение иконки */
+    position: relative; /* Для управления смещением */
+    z-index: 1; /* Иконка всегда выше текста */
 }
 
 .link:hover .name {
-    color: #ffffff;
+    opacity: 1; /* Показываем текст */
+    transform: translateX(0); /* Возвращаем текст в исходное положение */
+    color: #ffffff; /* Цвет текста */
+}
+
+.link:hover img {
+    transform: translateX(-115px); /* Иконка сдвигается влево */
 }
 
 .telegram {
@@ -134,4 +153,16 @@ body {
 ::after,
 ::before {
     box-sizing: revert;
+}
+
+@media (max-width: 768px) {
+    .link {
+        justify-content: center; /* Центрируем иконки */
+        padding: 10px;
+    }
+
+    .link img {
+        margin-right: 0; /* Убираем отступы */
+    }
+
 }

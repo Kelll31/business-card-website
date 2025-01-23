@@ -78,6 +78,7 @@ body {
     transition: all 0.3s ease-in-out;
     /* Плавный переход */
     flex-direction: column;
+    align-content: center
 }
 
 .link img {
@@ -206,13 +207,17 @@ body {
 
 /* Скрытое содержимое меню */
 .dropdown-content {
-    max-height: 0; /* Скрываем содержимое */
-    overflow: hidden; /* Скрываем текст, если высота равна 0 */
+    max-height: 0;
+    /* Скрываем содержимое */
+    overflow: hidden;
+    /* Скрываем текст, если высота равна 0 */
     background-color: #2d2d2d;
     color: white;
-    padding: 0 20px; /* Убираем внутренние отступы, пока меню скрыто */
+    padding: 0 20px;
+    /* Убираем внутренние отступы, пока меню скрыто */
     border-radius: 10px;
-    transition: max-height 0.3s ease, padding 0.3s ease; /* Анимация высоты и отступов */
+    transition: max-height 0.3s ease, padding 0.3s ease;
+    /* Анимация высоты и отступов */
 }
 
 /* Текст внутри меню */
@@ -228,7 +233,8 @@ body {
 
 /* Когда меню открыто */
 .dropdown-content.show {
-    max-height: 300px; /* Устанавливаем максимальную высоту для открытого меню */
+    max-height: 300px;
+    /* Устанавливаем максимальную высоту для открытого меню */
 }
 
 *,

@@ -160,7 +160,8 @@ body {
     top: 0;
     left: 0;
     width: 100%;
-    height: 120% !important;
+    height: auto;
+    min-height: 100%;
 }
 
 .main {
@@ -202,13 +203,14 @@ body {
     color: white;
     padding: 0 20px;
     border-radius: 10px;
-    transition: max-height 0.3s ease, padding 0.3s ease;
+    transition: max-height 0.5s ease, padding 0.5s ease;
 }
 
 .dropdown-content p {
     margin: 10px 0;
     padding: 10px 0;
-    border-bottom: 1px solid #444;
+    border-bottom: 1px solid #666;
+    text-align: center;
 }
 
 .dropdown-content p:last-child {
@@ -216,7 +218,7 @@ body {
 }
 
 .dropdown-content.show {
-    max-height: 300px;
+    max-height: 1000px;
 }
 
 .tooltip {
@@ -232,18 +234,13 @@ body {
     opacity: 0;
     visibility: hidden;
     transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
-    /* Плавное появление */
     white-space: nowrap;
-    /* Запрет переноса текста */
     z-index: 100;
-    /* Поверх других элементов */
 }
 
 .link .tooltip.show {
     opacity: 1;
-    /* Показываем */
     visibility: visible;
-    /* Делаем видимым */
 }
 
 *,

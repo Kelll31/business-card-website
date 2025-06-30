@@ -61,7 +61,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 });
 
-const originalEmail = "kuprikov@rosintelcom.ru";
+const originalEmail = "kuprikov.kelll31@gmail.com";
 
 function showCopyText() {
     const emailTextElement = document.getElementById('email-text');

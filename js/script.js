@@ -377,7 +377,7 @@ class NavigationManager extends BaseComponent {
 
         // Элементы DOM
         this.sidebar = null;
-        this.toggleButton = null;
+        this.toggleButton = null; // Может быть null
         this.navItems = [];
         this.contentSections = [];
 
@@ -392,7 +392,6 @@ class NavigationManager extends BaseComponent {
 
         // Привязка методов к контексту
         this.handleResize = this.handleResize.bind(this);
-        this.toggleSidebar = this.toggleSidebar.bind(this);
         this.handleNavClick = this.handleNavClick.bind(this);
         this.handleKeyNavigation = this.handleKeyNavigation.bind(this);
     }
@@ -423,9 +422,14 @@ class NavigationManager extends BaseComponent {
     async initializeElements() {
         // Основные элементы
         this.sidebar = Utils.$(SELECTORS.SIDEBAR);
-        this.toggleButton = Utils.$(SELECTORS.SIDEBAR_TOGGLE);
 
-        // Навигационные элементы (исправленный селектор)
+        // Toggle кнопка ОПЦИОНАЛЬНА
+        this.toggleButton = Utils.$(SELECTORS.SIDEBAR_TOGGLE);
+        if (!this.toggleButton) {
+            console.info('NavigationManager: Toggle кнопка не найдена - работаем без неё');
+        }
+
+        // Навигационные элементы
         const navItemElements = Utils.$$('.nav-item');
         this.navItems = Array.from(navItemElements).map(item => {
             const link = item.querySelector('a');
@@ -454,8 +458,9 @@ class NavigationManager extends BaseComponent {
             return false;
         }
 
+        // Toggle кнопка НЕ обязательна
         if (!this.toggleButton) {
-            console.warn('Toggle кнопка не найдена');
+            console.info('Toggle кнопка отсутствует - навигация будет работать без неё');
         }
 
         if (this.navItems.length === 0) {
@@ -472,9 +477,12 @@ class NavigationManager extends BaseComponent {
     }
 
     bindEvents() {
-        // Toggle кнопка
+        // Toggle кнопка - только если существует
         if (this.toggleButton) {
             this.addEventHandler('click', this.toggleSidebar, this.toggleButton);
+            console.log('✅ Toggle кнопка подключена');
+        } else {
+            console.log('ℹ️ Toggle кнопка отсутствует - используйте альтернативные методы навигации');
         }
 
         // Навигационные элементы
@@ -488,32 +496,27 @@ class NavigationManager extends BaseComponent {
         this.addEventHandler('keydown', this.handleKeyNavigation);
         this.addEventHandler('resize', Utils.debounce(this.handleResize, 250), window);
 
-        // Клик вне sidebar на мобильных
-        this.addEventHandler('click', this.handleOutsideClick);
+        // Клик вне sidebar на мобильных (если нет toggle кнопки)
+        if (!this.toggleButton) {
+            this.addEventHandler('click', this.handleOutsideClick);
+        }
+
+        // Swipe gestures для мобильных (альтернатива toggle)
+        this.setupSwipeGestures();
     }
 
     initializeState() {
-        // Загружаем сохраненное состояние
-        const savedCollapsed = localStorage.getItem('sidebar-collapsed');
-
+        // Если нет toggle кнопки, всегда показываем навигацию на десктопе
         if (window.innerWidth >= 1024) {
             // Десктопный режим
-            this.isCollapsed = savedCollapsed === 'true';
-
-            if (this.isCollapsed) {
-                this.sidebar.classList.add('collapsed');
-            }
-
-            this.sidebar.classList.remove('expanded');
+            this.isCollapsed = false; // Всегда развернуто без toggle
+            this.sidebar?.classList.remove('collapsed', 'expanded');
         } else {
-            // Мобильный режим
+            // Мобильный режим - скрыто по умолчанию
             this.isCollapsed = false;
             this.isExpanded = false;
-
-            this.sidebar.classList.remove('collapsed', 'expanded');
+            this.sidebar?.classList.remove('collapsed', 'expanded');
         }
-
-        this.updateToggleIcon();
     }
 
     setupIntersectionObserver() {
@@ -540,18 +543,82 @@ class NavigationManager extends BaseComponent {
         });
     }
 
+    // Альтернативные методы навигации без toggle кнопки
+    setupSwipeGestures() {
+        if (window.innerWidth >= 1024) return; // Только для мобильных
+
+        let startX = 0;
+        let startY = 0;
+
+        this.addEventHandler('touchstart', (e) => {
+            startX = e.touches[0].clientX;
+            startY = e.touches[0].clientY;
+        });
+
+        this.addEventHandler('touchend', (e) => {
+            if (!startX || !startY) return;
+
+            const endX = e.changedTouches[0].clientX;
+            const endY = e.changedTouches[0].clientY;
+
+            const diffX = startX - endX;
+            const diffY = startY - endY;
+
+            // Проверяем что это горизонтальный swipe
+            if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 50) {
+                if (diffX > 0 && startX < 50) {
+                    // Swipe right to left от левого края - показать меню
+                    this.showMobileMenu();
+                } else if (diffX < 0 && this.isExpanded) {
+                    // Swipe left to right - скрыть меню
+                    this.hideMobileMenu();
+                }
+            }
+
+            startX = 0;
+            startY = 0;
+        });
+    }
+
+    // Методы для управления мобильным меню без toggle кнопки
+    showMobileMenu() {
+        if (window.innerWidth >= 1024) return;
+
+        this.isExpanded = true;
+        this.sidebar?.classList.add('expanded');
+        this.sidebar?.classList.remove('collapsed');
+
+        this.emit('sidebarToggled', {
+            type: 'expanded',
+            isExpanded: true,
+            isDesktop: false
+        });
+    }
+
+    hideMobileMenu() {
+        if (window.innerWidth >= 1024) return;
+
+        this.isExpanded = false;
+        this.sidebar?.classList.remove('expanded');
+
+        this.emit('sidebarToggled', {
+            type: 'collapsed',
+            isExpanded: false,
+            isDesktop: false
+        });
+    }
+
+    // Опциональный toggleSidebar (работает только если есть toggle кнопка)
     toggleSidebar() {
-        if (!this.sidebar) return;
+        if (!this.toggleButton) {
+            console.warn('Toggle кнопка отсутствует - используйте showMobileMenu/hideMobileMenu');
+            return;
+        }
 
         if (window.innerWidth >= 1024) {
-            // Десктопное поведение: переключение collapsed состояния
+            // Десктопное поведение
             this.isCollapsed = !this.isCollapsed;
-
-            this.sidebar.classList.toggle('collapsed', this.isCollapsed);
-            this.sidebar.classList.remove('expanded');
-
-            // Сохраняем состояние
-            localStorage.setItem('sidebar-collapsed', this.isCollapsed.toString());
+            this.sidebar?.classList.toggle('collapsed', this.isCollapsed);
 
             this.emit('sidebarToggled', {
                 type: 'collapsed',
@@ -559,40 +626,12 @@ class NavigationManager extends BaseComponent {
                 isDesktop: true
             });
         } else {
-            // Мобильное поведение: переключение expanded состояния
-            this.isExpanded = !this.isExpanded;
-
-            this.sidebar.classList.toggle('expanded', this.isExpanded);
-            this.sidebar.classList.remove('collapsed');
-
-            if (this.toggleButton) {
-                this.toggleButton.setAttribute('aria-expanded', this.isExpanded.toString());
+            // Мобильное поведение
+            if (this.isExpanded) {
+                this.hideMobileMenu();
+            } else {
+                this.showMobileMenu();
             }
-
-            this.emit('sidebarToggled', {
-                type: 'expanded',
-                isExpanded: this.isExpanded,
-                isDesktop: false
-            });
-        }
-
-        this.updateToggleIcon();
-    }
-
-    updateToggleIcon() {
-        const icon = this.toggleButton?.querySelector('i');
-        if (!icon) return;
-
-        if (window.innerWidth >= 1024) {
-            // Десктопные иконки
-            icon.className = this.isCollapsed
-                ? 'fas fa-chevron-right'
-                : 'fas fa-chevron-left';
-        } else {
-            // Мобильные иконки
-            icon.className = this.isExpanded
-                ? 'fas fa-times'
-                : 'fas fa-bars';
         }
     }
 
@@ -611,7 +650,7 @@ class NavigationManager extends BaseComponent {
 
             // Закрываем мобильное меню после навигации
             if (window.innerWidth < 1024 && this.isExpanded) {
-                this.toggleSidebar();
+                this.hideMobileMenu();
             }
         }
     }
@@ -633,24 +672,9 @@ class NavigationManager extends BaseComponent {
                 history.replaceState(null, '', `#${sectionId}`);
             }
 
-            // Скроллим к секции если нужно
-            this.scrollToSection(targetSection);
-
             this.emit('navigationChanged', {
                 section: sectionId,
                 element: targetSection
-            });
-        }
-    }
-
-    scrollToSection(element) {
-        const rect = element.getBoundingClientRect();
-        const isVisible = rect.top >= 0 && rect.bottom <= window.innerHeight;
-
-        if (!isVisible) {
-            element.scrollIntoView({
-                behavior: 'smooth',
-                block: 'start'
             });
         }
     }
@@ -715,67 +739,51 @@ class NavigationManager extends BaseComponent {
 
         // Escape для закрытия мобильного меню
         if (event.key === 'Escape' && this.isExpanded && window.innerWidth < 1024) {
-            this.toggleSidebar();
+            this.hideMobileMenu();
+        }
+
+        // M для показа/скрытия мобильного меню (альтернатива toggle)
+        if (event.key.toLowerCase() === 'm' && event.ctrlKey && window.innerWidth < 1024) {
+            event.preventDefault();
+            if (this.isExpanded) {
+                this.hideMobileMenu();
+            } else {
+                this.showMobileMenu();
+            }
         }
     }
 
     handleOutsideClick(event) {
-        // Закрываем мобильное меню при клике вне его
+        // Закрываем мобильное меню при клике вне его (если нет toggle кнопки)
         if (window.innerWidth >= 1024 || !this.isExpanded) return;
 
         const isClickInsideSidebar = this.sidebar?.contains(event.target);
-        const isClickOnToggle = this.toggleButton?.contains(event.target);
 
-        if (!isClickInsideSidebar && !isClickOnToggle) {
-            this.toggleSidebar();
+        if (!isClickInsideSidebar) {
+            this.hideMobileMenu();
         }
     }
 
     handleResize() {
-        // Debounce resize события
         if (this.resizeTimeout) {
             clearTimeout(this.resizeTimeout);
         }
 
         this.resizeTimeout = setTimeout(() => {
-            const wasDesktop = this.wasDesktop;
             const isDesktop = window.innerWidth >= 1024;
-            this.wasDesktop = isDesktop;
 
-            if (wasDesktop !== isDesktop) {
-                // Переход между режимами
-                this.handleModeChange(isDesktop);
-            }
-
-            this.updateToggleIcon();
-        }, 100);
-    }
-
-    handleModeChange(isDesktop) {
-        if (isDesktop) {
-            // Переход в десктопный режим
-            this.isExpanded = false;
-            this.sidebar?.classList.remove('expanded');
-
-            // Восстанавливаем сохраненное collapsed состояние
-            const savedCollapsed = localStorage.getItem('sidebar-collapsed');
-            if (savedCollapsed === 'true') {
-                this.isCollapsed = true;
-                this.sidebar?.classList.add('collapsed');
-            } else {
+            if (isDesktop) {
+                // Переход в десктопный режим - всегда показываем навигацию
+                this.isExpanded = false;
                 this.isCollapsed = false;
-                this.sidebar?.classList.remove('collapsed');
+                this.sidebar?.classList.remove('expanded', 'collapsed');
+            } else {
+                // Переход в мобильный режим - скрываем по умолчанию
+                this.isCollapsed = false;
+                this.isExpanded = false;
+                this.sidebar?.classList.remove('expanded', 'collapsed');
             }
-        } else {
-            // Переход в мобильный режим
-            this.isCollapsed = false;
-            this.isExpanded = false;
-            this.sidebar?.classList.remove('collapsed', 'expanded');
-        }
-
-        if (this.toggleButton) {
-            this.toggleButton.setAttribute('aria-expanded', 'false');
-        }
+        }, 100);
     }
 
     // Публичные методы для внешнего использования
@@ -789,6 +797,7 @@ class NavigationManager extends BaseComponent {
             isCollapsed: this.isCollapsed,
             isExpanded: this.isExpanded,
             isDesktop: window.innerWidth >= 1024,
+            hasToggleButton: !!this.toggleButton,
             navItemsCount: this.navItems.length
         };
     }
@@ -801,17 +810,28 @@ class NavigationManager extends BaseComponent {
         return false;
     }
 
-    collapse() {
-        if (window.innerWidth >= 1024 && !this.isCollapsed) {
-            this.toggleSidebar();
+    // Публичные методы для управления без toggle кнопки
+    show() {
+        if (window.innerWidth < 1024) {
+            this.showMobileMenu();
         }
     }
 
-    expand() {
-        if (window.innerWidth >= 1024 && this.isCollapsed) {
+    hide() {
+        if (window.innerWidth < 1024) {
+            this.hideMobileMenu();
+        }
+    }
+
+    toggle() {
+        if (this.toggleButton) {
             this.toggleSidebar();
-        } else if (window.innerWidth < 1024 && !this.isExpanded) {
-            this.toggleSidebar();
+        } else if (window.innerWidth < 1024) {
+            if (this.isExpanded) {
+                this.hideMobileMenu();
+            } else {
+                this.showMobileMenu();
+            }
         }
     }
 
@@ -838,6 +858,7 @@ class NavigationManager extends BaseComponent {
         super.destroy();
     }
 }
+
 
 
 // ============================================================================

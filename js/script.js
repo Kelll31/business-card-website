@@ -1725,6 +1725,180 @@ class CyberCardApp extends EventEmitter {
     }
 }
 
+/**
+ * Менеджер мобильного меню
+ */
+class MobileMenuManager {
+    constructor() {
+        this.menuToggle = document.getElementById('mobileMenuToggle');
+        this.menuOverlay = document.getElementById('mobileMenuOverlay');
+        this.menuClose = document.getElementById('mobileMenuClose');
+        this.menuItems = document.querySelectorAll('.mobile-menu-item a');
+        this.isOpen = false;
+        this.activeSection = 'profile';
+
+        this.init();
+    }
+
+    init() {
+        this.bindEvents();
+        this.updateActiveItem();
+    }
+
+    bindEvents() {
+        // Открытие меню
+        this.menuToggle?.addEventListener('click', () => this.toggleMenu());
+
+        // Закрытие меню
+        this.menuClose?.addEventListener('click', () => this.closeMenu());
+
+        // Навигация по элементам
+        this.menuItems.forEach(item => {
+            item.addEventListener('click', (e) => this.handleNavigation(e));
+        });
+
+        // Закрытие по ESC
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && this.isOpen) {
+                this.closeMenu();
+            }
+        });
+
+        // Закрытие при клике вне меню
+        this.menuOverlay?.addEventListener('click', (e) => {
+            if (e.target === this.menuOverlay) {
+                this.closeMenu();
+            }
+        });
+
+        // Отслеживание изменения секций
+        this.observeSections();
+    }
+
+    toggleMenu() {
+        if (this.isOpen) {
+            this.closeMenu();
+        } else {
+            this.openMenu();
+        }
+    }
+
+    openMenu() {
+        this.isOpen = true;
+        this.menuToggle?.classList.add('active');
+        this.menuOverlay?.classList.add('active');
+        this.menuToggle?.setAttribute('aria-expanded', 'true');
+
+        // Блокируем скролл
+        document.body.style.overflow = 'hidden';
+
+        // Фокус на первый элемент меню
+        setTimeout(() => {
+            this.menuItems[0]?.focus();
+        }, 300);
+    }
+
+    closeMenu() {
+        this.isOpen = false;
+        this.menuToggle?.classList.remove('active');
+        this.menuOverlay?.classList.remove('active');
+        this.menuToggle?.setAttribute('aria-expanded', 'false');
+
+        // Восстанавливаем скролл
+        document.body.style.overflow = '';
+
+        // Возвращаем фокус на кнопку
+        this.menuToggle?.focus();
+    }
+
+    handleNavigation(event) {
+        event.preventDefault();
+
+        const link = event.currentTarget;
+        const section = link.getAttribute('data-section');
+
+        if (section) {
+            this.navigateToSection(section);
+            this.closeMenu();
+        }
+    }
+
+    navigateToSection(sectionId) {
+        // Скрываем все секции
+        document.querySelectorAll('.content-section').forEach(section => {
+            section.classList.remove('active');
+        });
+
+        // Показываем целевую секцию
+        const targetSection = document.getElementById(sectionId);
+        if (targetSection) {
+            targetSection.classList.add('active');
+            this.activeSection = sectionId;
+            this.updateActiveItem();
+
+            // Обновляем URL
+            window.location.hash = sectionId;
+
+            // Плавный скролл к началу секции
+            targetSection.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+            });
+        }
+    }
+
+    updateActiveItem() {
+        // Убираем активное состояние со всех элементов
+        document.querySelectorAll('.mobile-menu-item').forEach(item => {
+            item.classList.remove('active');
+        });
+
+        // Добавляем активное состояние к текущему
+        const activeItem = document.querySelector(
+            `.mobile-menu-item a[data-section="${this.activeSection}"]`
+        )?.parentElement;
+
+        if (activeItem) {
+            activeItem.classList.add('active');
+        }
+    }
+
+    observeSections() {
+        if (!('IntersectionObserver' in window)) return;
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting && entry.intersectionRatio > 0.5) {
+                    this.activeSection = entry.target.id;
+                    this.updateActiveItem();
+                }
+            });
+        }, {
+            threshold: [0.1, 0.5, 0.9],
+            rootMargin: '-100px 0px -100px 0px'
+        });
+
+        document.querySelectorAll('.content-section').forEach(section => {
+            observer.observe(section);
+        });
+    }
+}
+
+// Инициализация при загрузке DOM
+document.addEventListener('DOMContentLoaded', () => {
+    if (window.innerWidth <= 1023) {
+        new MobileMenuManager();
+    }
+});
+
+// Реинициализация при изменении размера окна
+window.addEventListener('resize', () => {
+    if (window.innerWidth <= 1023 && !window.mobileMenuManager) {
+        window.mobileMenuManager = new MobileMenuManager();
+    }
+});
+
+
 // ============================================================================
 // ГЛОБАЛЬНЫЕ ФУНКЦИИ ДЛЯ СОВМЕСТИМОСТИ
 // ============================================================================

@@ -375,36 +375,41 @@ class NavigationManager extends BaseComponent {
     constructor() {
         super('NavigationManager');
 
-        // Элементы DOM
+        // DOM элементы
         this.sidebar = null;
         this.toggleButton = null;
         this.navItems = [];
         this.contentSections = [];
+        this.mainContent = null;
 
-        // Состояние навигации
+        // Состояние
         this.currentSection = null;
         this.isCollapsed = false;
-        this.isExpanded = false;
 
-        // Наблюдатели
+        // Наблюдатели и таймеры
         this.observer = null;
         this.resizeTimeout = null;
+        this.initTimeout = null;
 
-        // Привязка методов к контексту
-        this.handleResize = this.handleResize.bind(this);
+        // Привязка методов
         this.toggleSidebar = this.toggleSidebar.bind(this);
         this.handleNavClick = this.handleNavClick.bind(this);
         this.handleKeyNavigation = this.handleKeyNavigation.bind(this);
+        this.handleResize = this.handleResize.bind(this);
+        this.handleOutsideClick = this.handleOutsideClick.bind(this);
     }
 
     async setup() {
         try {
-            // Инициализация элементов DOM
+            // Ждем загрузки DOM если нужно
+            await this.waitForDOM();
+
+            // Инициализация элементов
             await this.initializeElements();
 
-            // Проверка наличия обязательных элементов
+            // Валидация
             if (!this.validateElements()) {
-                console.warn('NavigationManager: Отсутствуют обязательные элементы DOM');
+                console.warn('NavigationManager: Критические элементы не найдены');
                 return;
             }
 
@@ -412,11 +417,34 @@ class NavigationManager extends BaseComponent {
             this.setupIntersectionObserver();
             this.initializeState();
             this.loadActiveSection();
+            this.updateLayout();
 
-            console.log(`✅ NavigationManager: Инициализирован с ${this.navItems.length} элементами`);
+            console.log(`✅ NavigationManager: Инициализирован (${this.navItems.length} элементов)`);
         } catch (error) {
             console.error('NavigationManager setup error:', error);
             throw error;
+        }
+    }
+
+    async waitForDOM() {
+        // Ждем до 2 секунд пока DOM полностью загрузится
+        let attempts = 0;
+        const maxAttempts = 20;
+
+        while (attempts < maxAttempts) {
+            const sidebar = Utils.$(SELECTORS.SIDEBAR);
+            const navItems = Utils.$$('.nav-item');
+
+            if (sidebar && navItems.length > 0) {
+                break;
+            }
+
+            await Utils.sleep(100);
+            attempts++;
+        }
+
+        if (attempts >= maxAttempts) {
+            console.warn('NavigationManager: Timeout ожидания DOM');
         }
     }
 
@@ -425,46 +453,60 @@ class NavigationManager extends BaseComponent {
         this.sidebar = Utils.$(SELECTORS.SIDEBAR);
         this.toggleButton = Utils.$(SELECTORS.SIDEBAR_TOGGLE);
 
-        // Навигационные элементы (исправленный селектор)
+        // Безопасное получение навигационных элементов
         const navItemElements = Utils.$$('.nav-item');
-        this.navItems = Array.from(navItemElements).map(item => {
-            const link = item.querySelector('a');
-            return {
-                element: item,
-                link: link,
-                section: link ? link.getAttribute('href')?.slice(1) : null,
-                icon: link ? link.querySelector('i') : null,
-                text: link ? link.querySelector('span, .nav-text') : null
-            };
-        }).filter(item => item.section);
 
-        // Секции контента
-        this.contentSections = Array.from(Utils.$$(SELECTORS.CONTENT_SECTIONS));
+        // Проверяем что элементы найдены и преобразуем в массив
+        if (navItemElements && navItemElements.length > 0) {
+            this.navItems = Array.from(navItemElements).map(item => {
+                const link = item.querySelector('a');
+                return {
+                    element: item,
+                    link: link,
+                    section: link ? link.getAttribute('href')?.slice(1) : null,
+                    icon: link ? link.querySelector('i') : null,
+                    text: link ? link.querySelector('span, .nav-text') : null
+                };
+            }).filter(item => item.section && item.link);
+        } else {
+            this.navItems = [];
+        }
 
-        // Время ожидания для загрузки DOM
+        // Секции контента - тоже безопасно
+        const contentSectionElements = Utils.$$(SELECTORS.CONTENT_SECTIONS);
+        this.contentSections = contentSectionElements ? Array.from(contentSectionElements) : [];
+
+        // Время ожидания для загрузки DOM если элементы не найдены
         if (this.navItems.length === 0) {
             await Utils.sleep(100);
-            await this.initializeElements();
+
+            // Повторная попытка
+            const retryNavItems = Utils.$$('.nav-item');
+            if (retryNavItems && retryNavItems.length > 0) {
+                this.navItems = Array.from(retryNavItems).map(item => {
+                    const link = item.querySelector('a');
+                    return {
+                        element: item,
+                        link: link,
+                        section: link ? link.getAttribute('href')?.slice(1) : null,
+                        icon: link ? link.querySelector('i') : null,
+                        text: link ? link.querySelector('span, .nav-text') : null
+                    };
+                }).filter(item => item.section && item.link);
+            }
         }
     }
 
     validateElements() {
-        if (!this.sidebar) {
-            console.warn('Sidebar элемент не найден');
-            return false;
-        }
+        const errors = [];
 
-        if (!this.toggleButton) {
-            console.warn('Toggle кнопка не найдена');
-        }
+        if (!this.sidebar) errors.push('Sidebar не найден');
+        if (!this.toggleButton) errors.push('Toggle кнопка не найдена');
+        if (this.navItems.length === 0) errors.push('Навигационные элементы не найдены');
+        if (this.contentSections.length === 0) errors.push('Секции контента не найдены');
 
-        if (this.navItems.length === 0) {
-            console.warn('Навигационные элементы не найдены');
-            return false;
-        }
-
-        if (this.contentSections.length === 0) {
-            console.warn('Секции контента не найдены');
+        if (errors.length > 0) {
+            console.error('NavigationManager validation errors:', errors);
             return false;
         }
 
@@ -485,52 +527,57 @@ class NavigationManager extends BaseComponent {
         });
 
         // Глобальные события
-        this.addEventHandler('keydown', this.handleKeyNavigation);
+        this.addEventHandler('keydown', this.handleKeyNavigation, document);
         this.addEventHandler('resize', Utils.debounce(this.handleResize, 250), window);
+        this.addEventHandler('click', this.handleOutsideClick, document);
 
-        // Клик вне sidebar на мобильных
-        this.addEventHandler('click', this.handleOutsideClick);
+        // Hashchange для поддержки браузерной навигации
+        this.addEventHandler('hashchange', this.handleHashChange, window);
     }
 
     initializeState() {
         // Загружаем сохраненное состояние
         const savedCollapsed = localStorage.getItem('sidebar-collapsed');
+        this.isCollapsed = savedCollapsed === 'true';
 
-        if (window.innerWidth >= 1024) {
-            // Десктопный режим
-            this.isCollapsed = savedCollapsed === 'true';
-
-            if (this.isCollapsed) {
-                this.sidebar.classList.add('collapsed');
-            }
-
-            this.sidebar.classList.remove('expanded');
+        // Применяем состояние
+        if (this.isCollapsed) {
+            this.sidebar?.classList.add('collapsed');
         } else {
-            // Мобильный режим
-            this.isCollapsed = false;
-            this.isExpanded = false;
-
-            this.sidebar.classList.remove('collapsed', 'expanded');
+            this.sidebar?.classList.remove('collapsed');
         }
 
+        // Обновляем иконку
         this.updateToggleIcon();
+        this.updateLayout();
+
+        console.log(`🔧 Начальное состояние: collapsed=${this.isCollapsed}`);
     }
 
     setupIntersectionObserver() {
-        if (!('IntersectionObserver' in window)) {
+        if (!('IntersectionObserver' in window) || this.contentSections.length === 0) {
+            console.warn('IntersectionObserver недоступен или нет секций');
             return;
         }
 
         this.observer = new IntersectionObserver(
             (entries) => {
+                let mostVisible = null;
+                let maxRatio = 0;
+
                 entries.forEach(entry => {
-                    if (entry.isIntersecting && entry.intersectionRatio > 0.5) {
-                        this.updateActiveNavItem(entry.target.id);
+                    if (entry.isIntersecting && entry.intersectionRatio > maxRatio) {
+                        maxRatio = entry.intersectionRatio;
+                        mostVisible = entry.target;
                     }
                 });
+
+                if (mostVisible && maxRatio > 0.3) {
+                    this.updateActiveNavItem(mostVisible.id);
+                }
             },
             {
-                threshold: [0.1, 0.5, 0.9],
+                threshold: [0.1, 0.3, 0.5, 0.7, 0.9],
                 rootMargin: '-80px 0px -80px 0px'
             }
         );
@@ -543,57 +590,52 @@ class NavigationManager extends BaseComponent {
     toggleSidebar() {
         if (!this.sidebar) return;
 
-        if (window.innerWidth >= 1024) {
-            // Десктопное поведение: переключение collapsed состояния
-            this.isCollapsed = !this.isCollapsed;
+        // Переключаем состояние
+        this.isCollapsed = !this.isCollapsed;
 
-            this.sidebar.classList.toggle('collapsed', this.isCollapsed);
-            this.sidebar.classList.remove('expanded');
+        // Применяем классы
+        this.sidebar.classList.toggle('collapsed', this.isCollapsed);
 
-            // Сохраняем состояние
-            localStorage.setItem('sidebar-collapsed', this.isCollapsed.toString());
+        // Сохраняем состояние
+        localStorage.setItem('sidebar-collapsed', this.isCollapsed.toString());
 
-            this.emit('sidebarToggled', {
-                type: 'collapsed',
-                isCollapsed: this.isCollapsed,
-                isDesktop: true
-            });
-        } else {
-            // Мобильное поведение: переключение expanded состояния
-            this.isExpanded = !this.isExpanded;
-
-            this.sidebar.classList.toggle('expanded', this.isExpanded);
-            this.sidebar.classList.remove('collapsed');
-
-            if (this.toggleButton) {
-                this.toggleButton.setAttribute('aria-expanded', this.isExpanded.toString());
-            }
-
-            this.emit('sidebarToggled', {
-                type: 'expanded',
-                isExpanded: this.isExpanded,
-                isDesktop: false
-            });
-        }
-
+        // Обновляем UI
         this.updateToggleIcon();
+        this.updateLayout();
+
+        // Уведомляем о изменении
+        this.emit('sidebarToggled', {
+            isCollapsed: this.isCollapsed,
+            width: this.isCollapsed ? 64 : 280
+        });
+
+        console.log(`🔄 Sidebar ${this.isCollapsed ? 'свернут' : 'развернут'}`);
     }
 
     updateToggleIcon() {
         const icon = this.toggleButton?.querySelector('i');
         if (!icon) return;
 
-        if (window.innerWidth >= 1024) {
-            // Десктопные иконки
-            icon.className = this.isCollapsed
-                ? 'fas fa-chevron-right'
-                : 'fas fa-chevron-left';
-        } else {
-            // Мобильные иконки
-            icon.className = this.isExpanded
-                ? 'fas fa-times'
-                : 'fas fa-bars';
-        }
+        // Обновляем иконку в зависимости от состояния
+        icon.className = this.isCollapsed
+            ? 'fas fa-chevron-right'
+            : 'fas fa-chevron-left';
+
+        // Обновляем aria-label для доступности
+        this.toggleButton.setAttribute('aria-label',
+            this.isCollapsed ? 'Развернуть навигацию' : 'Свернуть навигацию'
+        );
+    }
+
+    updateLayout() {
+        if (!this.mainContent) return;
+
+        // Обновляем отступ основного контента
+        const marginLeft = this.isCollapsed ? '64px' : '280px';
+        this.mainContent.style.marginLeft = marginLeft;
+
+        // Добавляем класс для CSS анимаций
+        this.mainContent.classList.toggle('sidebar-collapsed', this.isCollapsed);
     }
 
     handleNavClick(event) {
@@ -602,63 +644,53 @@ class NavigationManager extends BaseComponent {
         const link = event.currentTarget;
         const href = link.getAttribute('href');
 
-        if (!href || !href.startsWith('#')) return;
+        if (!href?.startsWith('#')) return;
 
         const sectionId = href.slice(1);
 
         if (sectionId && sectionId !== this.currentSection) {
             this.navigateToSection(sectionId);
-
-            // Закрываем мобильное меню после навигации
-            if (window.innerWidth < 1024 && this.isExpanded) {
-                this.toggleSidebar();
-            }
         }
     }
 
     navigateToSection(sectionId) {
+        // Проверяем существование секции
+        const targetSection = Utils.$(`#${sectionId}`);
+        if (!targetSection) {
+            console.warn(`Секция ${sectionId} не найдена`);
+            return;
+        }
+
         // Деактивируем все секции
         this.contentSections.forEach(section => {
             section.classList.remove('active');
         });
 
         // Активируем целевую секцию
-        const targetSection = Utils.$(`#${sectionId}`);
-        if (targetSection) {
-            targetSection.classList.add('active');
-            this.updateActiveNavItem(sectionId);
+        targetSection.classList.add('active');
 
-            // Обновляем URL
-            if (history.replaceState) {
-                history.replaceState(null, '', `#${sectionId}`);
-            }
+        // Обновляем навигацию
+        this.updateActiveNavItem(sectionId);
 
-            // Скроллим к секции если нужно
-            this.scrollToSection(targetSection);
+        // Обновляем URL
+        this.updateURL(sectionId);
 
-            this.emit('navigationChanged', {
-                section: sectionId,
-                element: targetSection
-            });
-        }
-    }
+        // Скроллим если нужно
+        this.scrollToSection(targetSection);
 
-    scrollToSection(element) {
-        const rect = element.getBoundingClientRect();
-        const isVisible = rect.top >= 0 && rect.bottom <= window.innerHeight;
+        // Уведомляем о изменении
+        this.emit('navigationChanged', {
+            section: sectionId,
+            element: targetSection
+        });
 
-        if (!isVisible) {
-            element.scrollIntoView({
-                behavior: 'smooth',
-                block: 'start'
-            });
-        }
+        console.log(`📍 Навигация к секции: ${sectionId}`);
     }
 
     updateActiveNavItem(sectionId) {
         if (this.currentSection === sectionId) return;
 
-        // Убираем активное состояние у всех элементов
+        // Убираем активный класс у всех элементов
         this.navItems.forEach(item => {
             item.element.classList.remove('active');
         });
@@ -667,6 +699,14 @@ class NavigationManager extends BaseComponent {
         const activeItem = this.navItems.find(item => item.section === sectionId);
         if (activeItem) {
             activeItem.element.classList.add('active');
+
+            // Добавляем специальные эффекты для свернутого состояния
+            if (this.isCollapsed && activeItem.icon) {
+                activeItem.icon.classList.add('active-icon');
+                setTimeout(() => {
+                    activeItem.icon?.classList.remove('active-icon');
+                }, 1000);
+            }
         }
 
         this.currentSection = sectionId;
@@ -677,12 +717,34 @@ class NavigationManager extends BaseComponent {
         });
     }
 
+    updateURL(sectionId) {
+        if (history.replaceState) {
+            history.replaceState(null, '', `#${sectionId}`);
+        } else {
+            window.location.hash = sectionId;
+        }
+    }
+
+    scrollToSection(element) {
+        // Проверяем видимость элемента
+        const rect = element.getBoundingClientRect();
+        const isVisible = rect.top >= 0 && rect.bottom <= window.innerHeight;
+
+        if (!isVisible) {
+            element.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start',
+                inline: 'nearest'
+            });
+        }
+    }
+
     loadActiveSection() {
         const hash = window.location.hash.slice(1);
         const defaultSection = 'profile';
         const targetSection = hash || defaultSection;
 
-        // Проверяем что секция существует
+        // Проверяем существование секции
         const sectionExists = this.contentSections.some(section =>
             section.id === targetSection
         );
@@ -690,9 +752,17 @@ class NavigationManager extends BaseComponent {
         if (sectionExists) {
             this.navigateToSection(targetSection);
         } else {
+            console.warn(`Секция ${targetSection} не найдена, переход к ${defaultSection}`);
             this.navigateToSection(defaultSection);
         }
     }
+
+    handleHashChange = () => {
+        const sectionId = window.location.hash.slice(1);
+        if (sectionId && sectionId !== this.currentSection) {
+            this.navigateToSection(sectionId);
+        }
+    };
 
     handleKeyNavigation(event) {
         // Горячие клавиши Alt + цифра
@@ -713,72 +783,32 @@ class NavigationManager extends BaseComponent {
             }
         }
 
-        // Escape для закрытия мобильного меню
-        if (event.key === 'Escape' && this.isExpanded && window.innerWidth < 1024) {
+        // Ctrl + B для переключения sidebar
+        if (event.ctrlKey && event.key === 'b') {
+            event.preventDefault();
             this.toggleSidebar();
         }
     }
 
     handleOutsideClick(event) {
-        // Закрываем мобильное меню при клике вне его
-        if (window.innerWidth >= 1024 || !this.isExpanded) return;
-
-        const isClickInsideSidebar = this.sidebar?.contains(event.target);
-        const isClickOnToggle = this.toggleButton?.contains(event.target);
-
-        if (!isClickInsideSidebar && !isClickOnToggle) {
-            this.toggleSidebar();
-        }
+        // Для десктопа не нужно, но оставляем для совместимости
+        return;
     }
 
     handleResize() {
-        // Debounce resize события
         if (this.resizeTimeout) {
             clearTimeout(this.resizeTimeout);
         }
 
         this.resizeTimeout = setTimeout(() => {
-            const wasDesktop = this.wasDesktop;
-            const isDesktop = window.innerWidth >= 1024;
-            this.wasDesktop = isDesktop;
+            // Обновляем layout при изменении размера
+            this.updateLayout();
 
-            if (wasDesktop !== isDesktop) {
-                // Переход между режимами
-                this.handleModeChange(isDesktop);
-            }
-
-            this.updateToggleIcon();
+            console.log(`📐 Resize: ${window.innerWidth}x${window.innerHeight}`);
         }, 100);
     }
 
-    handleModeChange(isDesktop) {
-        if (isDesktop) {
-            // Переход в десктопный режим
-            this.isExpanded = false;
-            this.sidebar?.classList.remove('expanded');
-
-            // Восстанавливаем сохраненное collapsed состояние
-            const savedCollapsed = localStorage.getItem('sidebar-collapsed');
-            if (savedCollapsed === 'true') {
-                this.isCollapsed = true;
-                this.sidebar?.classList.add('collapsed');
-            } else {
-                this.isCollapsed = false;
-                this.sidebar?.classList.remove('collapsed');
-            }
-        } else {
-            // Переход в мобильный режим
-            this.isCollapsed = false;
-            this.isExpanded = false;
-            this.sidebar?.classList.remove('collapsed', 'expanded');
-        }
-
-        if (this.toggleButton) {
-            this.toggleButton.setAttribute('aria-expanded', 'false');
-        }
-    }
-
-    // Публичные методы для внешнего использования
+    // Публичные методы API
     getCurrentSection() {
         return this.currentSection;
     }
@@ -787,35 +817,57 @@ class NavigationManager extends BaseComponent {
         return {
             currentSection: this.currentSection,
             isCollapsed: this.isCollapsed,
-            isExpanded: this.isExpanded,
-            isDesktop: window.innerWidth >= 1024,
-            navItemsCount: this.navItems.length
+            navItemsCount: this.navItems.length,
+            timestamp: Date.now()
         };
     }
 
     programmaticNavigate(sectionId) {
-        if (this.navItems.find(item => item.section === sectionId)) {
+        const validSection = this.navItems.find(item => item.section === sectionId);
+        if (validSection) {
             this.navigateToSection(sectionId);
             return true;
         }
+        console.warn(`Невозможна навигация к несуществующей секции: ${sectionId}`);
         return false;
     }
 
     collapse() {
-        if (window.innerWidth >= 1024 && !this.isCollapsed) {
+        if (!this.isCollapsed) {
             this.toggleSidebar();
         }
     }
 
     expand() {
-        if (window.innerWidth >= 1024 && this.isCollapsed) {
-            this.toggleSidebar();
-        } else if (window.innerWidth < 1024 && !this.isExpanded) {
+        if (this.isCollapsed) {
             this.toggleSidebar();
         }
     }
 
+    setCollapsed(collapsed) {
+        if (this.isCollapsed !== collapsed) {
+            this.toggleSidebar();
+        }
+    }
+
+    getAvailableSections() {
+        return this.navItems.map(item => ({
+            id: item.section,
+            title: item.tooltip || item.text?.textContent || item.section,
+            element: item.element
+        }));
+    }
+
+    refreshNavigation() {
+        // Переинициализация навигации
+        this.loadActiveSection();
+        this.updateLayout();
+        console.log('🔄 Навигация обновлена');
+    }
+
     destroy() {
+        console.log('🗑️ Уничтожение NavigationManager...');
+
         // Очистка наблюдателей
         if (this.observer) {
             this.observer.disconnect();
@@ -828,16 +880,51 @@ class NavigationManager extends BaseComponent {
             this.resizeTimeout = null;
         }
 
+        if (this.initTimeout) {
+            clearTimeout(this.initTimeout);
+            this.initTimeout = null;
+        }
+
+        // Сброс layout
+        if (this.mainContent) {
+            this.mainContent.style.marginLeft = '';
+            this.mainContent.classList.remove('sidebar-collapsed');
+        }
+
         // Очистка ссылок
         this.sidebar = null;
         this.toggleButton = null;
-        this.navItems = [];
-        this.contentSections = [];
+        this.mainContent = null;
+        this.navItems.length = 0;
+        this.contentSections.length = 0;
 
         // Вызов родительского метода
         super.destroy();
     }
+
+    // Методы для отладки
+    debug() {
+        return {
+            sidebar: !!this.sidebar,
+            toggleButton: !!this.toggleButton,
+            navItems: this.navItems.length,
+            contentSections: this.contentSections.length,
+            currentSection: this.currentSection,
+            isCollapsed: this.isCollapsed,
+            observer: !!this.observer
+        };
+    }
+
+    logState() {
+        console.group('🔍 NavigationManager State');
+        console.log('Current Section:', this.currentSection);
+        console.log('Is Collapsed:', this.isCollapsed);
+        console.log('Nav Items:', this.navItems.map(item => item.section));
+        console.log('Content Sections:', this.contentSections.map(section => section.id));
+        console.groupEnd();
+    }
 }
+
 
 
 // ============================================================================

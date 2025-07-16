@@ -2676,6 +2676,10 @@ h6 {
         margin-left: 280px;
     }
 
+    .sidebar:not(.collapsed) {
+        width: 64px !important;
+    }
+
     .profile-info {
         display: grid;
         grid-template-columns: auto 1fr;

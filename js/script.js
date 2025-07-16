@@ -536,9 +536,14 @@ class NavigationManager extends BaseComponent {
     }
 
     initializeState() {
-        // Загружаем сохраненное состояние
-        const savedCollapsed = localStorage.getItem('sidebar-collapsed');
-        this.isCollapsed = savedCollapsed === 'true';
+        // Принудительно collapsed для ПК версии
+        if (window.innerWidth >= 1024) {
+            this.isCollapsed = true;
+        } else {
+            // Загружаем сохраненное состояние только для мобильных устройств
+            const savedCollapsed = localStorage.getItem('sidebar-collapsed');
+            this.isCollapsed = savedCollapsed === 'true';
+        }
 
         // Применяем состояние
         if (this.isCollapsed) {
@@ -553,6 +558,7 @@ class NavigationManager extends BaseComponent {
 
         console.log(`🔧 Начальное состояние: collapsed=${this.isCollapsed}`);
     }
+
 
     setupIntersectionObserver() {
         if (!('IntersectionObserver' in window) || this.contentSections.length === 0) {
@@ -590,7 +596,13 @@ class NavigationManager extends BaseComponent {
     toggleSidebar() {
         if (!this.sidebar) return;
 
-        // Переключаем состояние
+        // Для ПК версии не разрешаем разворачивание
+        if (window.innerWidth >= 1024) {
+            console.log('🔒 Sidebar заблокирован в collapsed состоянии для ПК');
+            return;
+        }
+
+        // Переключаем состояние только для мобильных устройств
         this.isCollapsed = !this.isCollapsed;
 
         // Применяем классы
@@ -611,6 +623,7 @@ class NavigationManager extends BaseComponent {
 
         console.log(`🔄 Sidebar ${this.isCollapsed ? 'свернут' : 'развернут'}`);
     }
+
 
     updateToggleIcon() {
         const icon = this.toggleButton?.querySelector('i');
@@ -801,12 +814,19 @@ class NavigationManager extends BaseComponent {
         }
 
         this.resizeTimeout = setTimeout(() => {
+            // Принудительно collapsed для ПК версии
+            if (window.innerWidth >= 1024) {
+                this.isCollapsed = true;
+                this.sidebar?.classList.add('collapsed');
+                this.updateToggleIcon();
+            }
+
             // Обновляем layout при изменении размера
             this.updateLayout();
-
             console.log(`📐 Resize: ${window.innerWidth}x${window.innerHeight}`);
         }, 100);
     }
+
 
     // Публичные методы API
     getCurrentSection() {

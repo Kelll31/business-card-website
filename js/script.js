@@ -384,7 +384,7 @@ class NavigationManager extends BaseComponent {
 
         // Состояние
         this.currentSection = null;
-        this.isCollapsed = false;
+        this.isCollapsed = true;
 
         // Наблюдатели и таймеры
         this.observer = null;

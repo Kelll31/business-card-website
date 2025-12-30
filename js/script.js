@@ -28,7 +28,8 @@ const SELECTORS = Object.freeze({
     NOTIFICATION: '.notification',
     NOTIFICATION_CLOSE: '.notification-close',
     COPY_EMAIL: '.copy-email',
-    SOCIAL_LINKS: '.social-link'
+    SOCIAL_LINKS: '.social-link',
+    LOADING_SCREEN: '#loadingScreen'
 });
 
 const ANIMATION_CONFIG = Object.freeze({
@@ -250,6 +251,31 @@ const Utils = Object.freeze({
 });
 
 // ============================================================================
+// МЕНЕДЖЕР ЗАГРУЗОЧНОГО ЭКРАНА
+// ============================================================================
+
+class LoadingScreenManager {
+    constructor() {
+        this.loadingScreen = Utils.$(SELECTORS.LOADING_SCREEN);
+    }
+
+    hideLoadingScreen() {
+        if (!this.loadingScreen) return;
+
+        // Добавляем класс для плавной анимации исчезновения
+        this.loadingScreen.classList.add('fade-out');
+
+        // Удаляем элемент через 500ms после начала анимации
+        setTimeout(() => {
+            if (this.loadingScreen && this.loadingScreen.parentNode) {
+                this.loadingScreen.parentNode.removeChild(this.loadingScreen);
+                console.log('✅ Loading screen скрыт');
+            }
+        }, 500);
+    }
+}
+
+// ============================================================================
 // СИСТЕМА СОБЫТИЙ
 // ============================================================================
 
@@ -452,6 +478,7 @@ class NavigationManager extends BaseComponent {
         // Основные элементы
         this.sidebar = Utils.$(SELECTORS.SIDEBAR);
         this.toggleButton = Utils.$(SELECTORS.SIDEBAR_TOGGLE);
+        this.mainContent = Utils.$(SELECTORS.MAIN_CONTENT);
 
         // Безопасное получение навигационных элементов
         const navItemElements = Utils.$$('.nav-item');
@@ -1662,6 +1689,7 @@ class CyberCardApp extends EventEmitter {
         this.components = new Map();
         this.initialized = false;
         this.version = '3.0.2';
+        this.loadingScreenManager = new LoadingScreenManager();
 
         this.init().catch(error => {
             console.error('❌ Критическая ошибка инициализации:', error);
@@ -1677,6 +1705,9 @@ class CyberCardApp extends EventEmitter {
             this.initialized = true;
 
             console.info(`🚀 CyberCard v${this.version} инициализирован`);
+            
+            // Скрываем loading screen
+            this.loadingScreenManager.hideLoadingScreen();
 
             this.emit('initialized');
         } catch (error) {

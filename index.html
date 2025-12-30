@@ -607,7 +607,7 @@
                     <article class="skill-card advanced" tabindex="0">
                         <div class="skill-header">
                             <i class="fas fa-brain" aria-hidden="true"></i>
-                            <h3>AI/ML в Cybersecurity</h3>
+                            <h3>AI/ML в Offensive Security</h3>
                             <span class="skill-level advanced">Продвинутый уровень</span>
                         </div>
                         <div class="skill-content">
@@ -1400,7 +1400,7 @@
                             <i class="fas fa-globe" aria-hidden="true"></i>
                         </div>
                         <h3>SHTORM LABS</h3>
-                        <p>shtormlabs.ru</p>
+                        <p><a href="https://shtormlabs.ru" target="_blank" rel="noopener noreferrer">shtormlabs.ru</a></p>
                         <a href="https://shtormlabs.ru" class="contact-btn" target="_blank" rel="noopener noreferrer"
                             aria-label="Посетить SHTORM LABS">
                             <i class="fas fa-external-link-alt" aria-hidden="true"></i>
@@ -1413,7 +1413,7 @@
                             <i class="fas fa-shield-alt" aria-hidden="true"></i>
                         </div>
                         <h3>vulneraai</h3>
-                        <p>vulneraai.ru</p>
+                        <p><a href="https://vulneraai.ru" target="_blank" rel="noopener noreferrer">vulneraai.ru</a></p>
                         <a href="https://vulneraai.ru" class="contact-btn" target="_blank" rel="noopener noreferrer"
                             aria-label="Платформа vulneraai">
                             <i class="fas fa-external-link-alt" aria-hidden="true"></i>
@@ -1635,94 +1635,4 @@
             }
         };
 
-        // Обновление времени в терминале
-        function updateTerminalTime() {
-            const timeElement = document.getElementById('terminal-time');
-            if (timeElement) {
-                const now = new Date();
-                const timeString = now.toLocaleTimeString('ru-RU', {
-                    hour12: false,
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    second: '2-digit'
-                });
-                timeElement.textContent = timeString;
-            }
-        }
-
-        // Обновляем время каждую секунду
-        setInterval(updateTerminalTime, 1000);
-        updateTerminalTime(); // Инициализируем сразу
-
-        // Анимация загрузки
-        document.addEventListener('DOMContentLoaded', function () {
-            const loadingScreen = document.getElementById('loadingScreen');
-            const loadingProgress = document.getElementById('loadingProgress');
-            const loadingStatus = document.getElementById('loadingStatus');
-
-            const loadingSteps = [
-                'Инициализация системы...',
-                'Загрузка модулей безопасности...',
-                'Проверка компонентов...',
-                'Настройка интерфейса...',
-                'Система готова!'
-            ];
-
-            let currentStep = 0;
-            const stepInterval = setInterval(() => {
-                if (currentStep < loadingSteps.length) {
-                    loadingStatus.textContent = loadingSteps[currentStep];
-                    loadingProgress.style.width = `${(currentStep + 1) * 20}%`;
-                    currentStep++;
-                } else {
-                    clearInterval(stepInterval);
-                    setTimeout(() => {
-                        loadingScreen.style.opacity = '0';
-                        setTimeout(() => {
-                            loadingScreen.style.display = 'none';
-                        }, 500);
-                    }, 500);
-                }
-            }, 300);
-        });
-    </script>
-
-    <!-- Structured Data для Rich Snippets -->
-    <script type="application/ld+json">
-    {
-        "@context": "https://schema.org",
-        "@type": "ProfessionalService",
-        "name": "SHTORM LABS - Услуги пентестинга и кибербезопасности",
-        "provider": {
-            "@type": "Person",
-            "name": "Куприков Александр Эдуардович",
-            "alternateName": "kelll31",
-            "jobTitle": "CEO SHTORM LABS, Penetration Tester",
-            "description": "Генеральный директор стартапа SHTORM LABS и создатель платформы vulneraai.ru",
-            "url": "https://kelll31.github.io",
-            "image": "./images/kelll31.png",
-            "sameAs": [
-                "https://vk.com/kelll31",
-                "https://github.com/kelll31",
-                "https://t.me/Xlebyslliek",
-                "https://shtormlabs.ru",
-                "https://vulneraai.ru"
-            ],
-            "knowsAbout": [
-                "Penetration Testing",
-                "Cybersecurity",
-                "WiFi Security",
-                "Linux Security",
-                "AI/ML Security",
-                "Startup Leadership"
-            ]
-        },
-        "serviceType": "Cybersecurity Services",
-        "areaServed": "Global",
-        "availableLanguage": ["Russian", "English"],
-        "serviceOutput": "Security Assessment Report"
-    }
-    </script>
-</body>
-
-</html>
+        // Обновление врем

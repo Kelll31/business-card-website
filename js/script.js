@@ -1,6 +1,6 @@
 /**
  * @fileoverview Визитка пентестера без приватных полей
- * @version 3.0.4
+ * @version 3.0.5
  * @author kelll31
  * @license MIT
  */
@@ -427,16 +427,13 @@ class NavigationManager extends BaseComponent {
 
     async setup() {
         try {
-            // Ждем загрузки DOM если нужно
-            await this.waitForDOM();
-
-            // Инициализация элементов
+            // Инициализация элементов с жестким таймаутом
             await this.initializeElements();
 
             // Валидация
             if (!this.validateElements()) {
-                console.warn('NavigationManager: Критические элементы не найдены');
-                return;
+                console.warn('NavigationManager: Критические элементы не найдены, работаем с тем что есть');
+                // Не выходим, пытаемся продолжить с тем, что есть
             }
 
             // Настройка компонентов
@@ -452,65 +449,21 @@ class NavigationManager extends BaseComponent {
         }
     }
 
-    async waitForDOM() {
-        // Ждем до 2 секунд пока DOM полностью загрузится
-        let attempts = 0;
-        const maxAttempts = 20;
-
-        while (attempts < maxAttempts) {
-            const sidebar = Utils.$(SELECTORS.SIDEBAR);
-            const navItems = Utils.$$('.nav-item');
-
-            if (sidebar && navItems.length > 0) {
-                break;
-            }
-
-            await Utils.sleep(100);
-            attempts++;
-        }
-
-        if (attempts >= maxAttempts) {
-            console.warn('NavigationManager: Timeout ожидания DOM');
-        }
-    }
-
     async initializeElements() {
-        // Основные элементы
+        // Основные элементы - загружаем сразу
         this.sidebar = Utils.$(SELECTORS.SIDEBAR);
         this.toggleButton = Utils.$(SELECTORS.SIDEBAR_TOGGLE);
         this.mainContent = Utils.$(SELECTORS.MAIN_CONTENT);
 
-        // Безопасное получение навигационных элементов
-        const navItemElements = Utils.$$('.nav-item');
+        // Получаем навигационные элементы - с таймаутом макс 1 сек
+        const startTime = performance.now();
+        const timeout = 1000;
 
-        // Проверяем что элементы найдены и преобразуем в массив
-        if (navItemElements && navItemElements.length > 0) {
-            this.navItems = Array.from(navItemElements).map(item => {
-                const link = item.querySelector('a');
-                return {
-                    element: item,
-                    link: link,
-                    section: link ? link.getAttribute('href')?.slice(1) : null,
-                    icon: link ? link.querySelector('i') : null,
-                    text: link ? link.querySelector('span, .nav-text') : null
-                };
-            }).filter(item => item.section && item.link);
-        } else {
-            this.navItems = [];
-        }
-
-        // Секции контента - тоже безопасно
-        const contentSectionElements = Utils.$$(SELECTORS.CONTENT_SECTIONS);
-        this.contentSections = contentSectionElements ? Array.from(contentSectionElements) : [];
-
-        // Время ожидания для загрузки DOM если элементы не найдены
-        if (this.navItems.length === 0) {
-            await Utils.sleep(100);
-
-            // Повторная попытка
-            const retryNavItems = Utils.$$('.nav-item');
-            if (retryNavItems && retryNavItems.length > 0) {
-                this.navItems = Array.from(retryNavItems).map(item => {
+        while (performance.now() - startTime < timeout) {
+            const navItemElements = Utils.$$('.nav-item');
+            
+            if (navItemElements && navItemElements.length > 0) {
+                this.navItems = Array.from(navItemElements).map(item => {
                     const link = item.querySelector('a');
                     return {
                         element: item,
@@ -520,8 +473,21 @@ class NavigationManager extends BaseComponent {
                         text: link ? link.querySelector('span, .nav-text') : null
                     };
                 }).filter(item => item.section && item.link);
+
+                if (this.navItems.length > 0) {
+                    break;
+                }
             }
+
+            // Ждем 50ms перед повтором
+            await Utils.sleep(50);
         }
+
+        // Секции контента
+        const contentSectionElements = Utils.$$(SELECTORS.CONTENT_SECTIONS);
+        this.contentSections = contentSectionElements ? Array.from(contentSectionElements) : [];
+
+        console.log(`📍 Инициализация: ${this.navItems.length} nav items, ${this.contentSections.length} sections`);
     }
 
     validateElements() {
@@ -533,8 +499,8 @@ class NavigationManager extends BaseComponent {
         if (this.contentSections.length === 0) errors.push('Секции контента не найдены');
 
         if (errors.length > 0) {
-            console.error('NavigationManager validation errors:', errors);
-            return false;
+            console.warn('NavigationManager validation warnings:', errors);
+            return errors.length < 3; // Критично если потеряны секции или навигация
         }
 
         return true;
@@ -573,10 +539,12 @@ class NavigationManager extends BaseComponent {
         }
 
         // Применяем состояние
-        if (this.isCollapsed) {
-            this.sidebar?.classList.add('collapsed');
-        } else {
-            this.sidebar?.classList.remove('collapsed');
+        if (this.sidebar) {
+            if (this.isCollapsed) {
+                this.sidebar.classList.add('collapsed');
+            } else {
+                this.sidebar.classList.remove('collapsed');
+            }
         }
 
         // Обновляем иконку
@@ -1779,7 +1747,7 @@ class CyberCardApp extends EventEmitter {
         super();
         this.components = new Map();
         this.initialized = false;
-        this.version = '3.0.4';
+        this.version = '3.0.5';
         this.loadingScreenManager = new LoadingScreenManager();
 
         this.init().catch(error => {

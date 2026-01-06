@@ -1,6 +1,6 @@
 /**
  * @fileoverview Визитка пентестера без приватных полей
- * @version 3.0.2
+ * @version 3.0.3
  * @author kelll31
  * @license MIT
  */
@@ -128,7 +128,7 @@ const TYPING_MESSAGES = Object.freeze([
     'There are two hard things in computer science...',
     'Premature optimization is the root of all evil.',
     'Talk is cheap. Show me the code.',
-    'It works on my machine ¯\\_(ツ)_/¯',
+    'It works on my machine ¯\_(ツ)_/¯',
 
     // === СПЕЦИАЛЬНЫЕ ПАСХАЛКИ ===
     'Konami Code activated: ↑↑↓↓←→←→BA',
@@ -975,7 +975,7 @@ class NavigationManager extends BaseComponent {
 
 
 // ============================================================================
-// АНИМАЦИЯ ПЕЧАТИ
+// АНИМАЦИЯ ПЕЧАТИ (ИСПРАВЛЕНО)
 // ============================================================================
 
 class TypingAnimation extends BaseComponent {
@@ -985,48 +985,68 @@ class TypingAnimation extends BaseComponent {
         this.isTyping = false;
         this.messageIndex = 0;
         this.isVisible = true;
+        this.shouldStop = false;
+        this.typingLoopId = null;
     }
 
     async setup() {
         this.textElement = Utils.$(SELECTORS.TYPED_TEXT);
-        if (!this.textElement) return;
+        if (!this.textElement) {
+            console.warn('TypingAnimation: текстовый элемент не найден');
+            return;
+        }
 
+        this.isVisible = !document.hidden;
         this.startTypingLoop();
     }
 
     bindEvents() {
-        this.addEventHandler('visibilitychange', this.handleVisibilityChange);
+        this.addEventHandler('visibilitychange', this.handleVisibilityChange, document);
     }
 
     async startTypingLoop() {
-        while (this.textElement && this.isVisible) {
-            if (!this.isTyping) {
-                await this.typeMessage(TYPING_MESSAGES[this.messageIndex]);
-                this.messageIndex = (this.messageIndex + 1) % TYPING_MESSAGES.length;
-                await Utils.sleep(ANIMATION_CONFIG.TYPING_PAUSE);
+        while (!this.shouldStop && this.textElement && this.isVisible) {
+            try {
+                if (!this.isTyping) {
+                    const message = TYPING_MESSAGES[this.messageIndex];
+                    await this.typeMessage(message);
+                    this.messageIndex = (this.messageIndex + 1) % TYPING_MESSAGES.length;
+                    
+                    // Проверяем перед паузой
+                    if (!this.shouldStop && this.isVisible) {
+                        await Utils.sleep(ANIMATION_CONFIG.TYPING_PAUSE);
+                    }
+                }
+            } catch (error) {
+                console.error('TypingAnimation error:', error);
             }
+            
+            if (this.shouldStop || !this.isVisible) break;
             await Utils.sleep(50);
         }
     }
 
     async typeMessage(message) {
-        if (!this.textElement || !this.isVisible) return;
+        if (!this.textElement || !this.isVisible || this.shouldStop) return;
 
         this.isTyping = true;
         this.textElement.textContent = '';
 
-        for (let i = 0; i <= message.length; i++) {
-            if (!this.isTyping || !this.isVisible) break;
-
+        // Печать текста
+        for (let i = 0; i <= message.length && this.isVisible && !this.shouldStop; i++) {
             this.textElement.textContent = message.slice(0, i);
             await Utils.sleep(ANIMATION_CONFIG.TYPING_SPEED);
         }
 
+        if (!this.isVisible || this.shouldStop) {
+            this.isTyping = false;
+            return;
+        }
+
         await Utils.sleep(1000);
 
-        for (let i = message.length; i >= 0; i--) {
-            if (!this.isTyping || !this.isVisible) break;
-
+        // Удаление текста
+        for (let i = message.length; i >= 0 && this.isVisible && !this.shouldStop; i--) {
             this.textElement.textContent = message.slice(0, i);
             await Utils.sleep(ANIMATION_CONFIG.TYPING_SPEED / 2);
         }
@@ -1036,21 +1056,35 @@ class TypingAnimation extends BaseComponent {
 
     handleVisibilityChange = () => {
         this.isVisible = !document.hidden;
-        if (!this.isVisible) {
-            this.isTyping = false;
-        } else if (this.textElement) {
+        
+        if (this.isVisible && this.textElement && !this.shouldStop) {
+            // Возобновляем анимацию
             this.startTypingLoop();
+        } else if (!this.isVisible) {
+            // Останавливаем текущую анимацию
+            this.isTyping = false;
         }
     };
 
     stop() {
+        this.shouldStop = true;
         this.isTyping = false;
         this.isVisible = false;
+        if (this.textElement) {
+            this.textElement.textContent = '';
+        }
     }
 
     start() {
+        this.shouldStop = false;
         this.isVisible = true;
         this.startTypingLoop();
+    }
+
+    destroy() {
+        this.stop();
+        this.textElement = null;
+        super.destroy();
     }
 }
 
@@ -1104,12 +1138,15 @@ class ParticleSystem extends BaseComponent {
         this.animationId = 0;
         this.isAnimating = false;
         this.lastFrameTime = 0;
-        this.targetFPS = 60;
+        this.targetFPS = 30;
     }
 
     async setup() {
         const container = Utils.$(SELECTORS.PARTICLES);
-        if (!container) return;
+        if (!container) {
+            console.warn('ParticleSystem: контейнер не найден');
+            return;
+        }
 
         this.createCanvas(container);
         this.initializeParticles();
@@ -1117,8 +1154,8 @@ class ParticleSystem extends BaseComponent {
     }
 
     bindEvents() {
-        this.addEventHandler('resize', Utils.throttle(this.handleResize, 100), window);
-        this.addEventHandler('visibilitychange', this.handleVisibilityChange);
+        this.addEventHandler('resize', Utils.throttle(() => this.handleResize(), 250), window);
+        this.addEventHandler('visibilitychange', this.handleVisibilityChange, document);
     }
 
     createCanvas(container) {
@@ -1133,7 +1170,7 @@ class ParticleSystem extends BaseComponent {
       z-index: -1;
     `;
 
-        this.ctx = this.canvas.getContext('2d');
+        this.ctx = this.canvas.getContext('2d', { alpha: true });
         this.resizeCanvas();
         container.appendChild(this.canvas);
     }
@@ -1153,7 +1190,10 @@ class ParticleSystem extends BaseComponent {
     }
 
     initializeParticles() {
-        const particleCount = Math.min(ANIMATION_CONFIG.PARTICLE_COUNT, Math.floor(window.innerWidth / 20));
+        const particleCount = Math.min(
+            ANIMATION_CONFIG.PARTICLE_COUNT,
+            Math.floor(window.innerWidth / 20)
+        );
         this.particles = Array.from({ length: particleCount },
             () => new Particle(window.innerWidth, window.innerHeight)
         );
@@ -1164,7 +1204,7 @@ class ParticleSystem extends BaseComponent {
 
         this.isAnimating = true;
         this.lastFrameTime = performance.now();
-        this.animate();
+        this.animationId = requestAnimationFrame(this.animate);
     }
 
     animate = (currentTime) => {
@@ -1180,12 +1220,18 @@ class ParticleSystem extends BaseComponent {
 
         this.lastFrameTime = currentTime;
 
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        try {
+            this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-        this.particles.forEach(particle => {
-            particle.update(window.innerWidth, window.innerHeight);
-            particle.draw(this.ctx);
-        });
+            this.particles.forEach(particle => {
+                particle.update(window.innerWidth, window.innerHeight);
+                particle.draw(this.ctx);
+            });
+        } catch (error) {
+            console.error('ParticleSystem animation error:', error);
+            this.stopAnimation();
+            return;
+        }
 
         this.animationId = requestAnimationFrame(this.animate);
     };
@@ -1210,6 +1256,17 @@ class ParticleSystem extends BaseComponent {
             this.animationId = 0;
         }
     }
+
+    destroy() {
+        this.stopAnimation();
+        if (this.canvas && this.canvas.parentNode) {
+            this.canvas.parentNode.removeChild(this.canvas);
+        }
+        this.canvas = null;
+        this.ctx = null;
+        this.particles = [];
+        super.destroy();
+    }
 }
 
 // ============================================================================
@@ -1226,6 +1283,10 @@ class ProgressManager extends BaseComponent {
 
     async setup() {
         this.progressBars = Utils.$$(SELECTORS.PROGRESS_BARS);
+        if (!this.progressBars || this.progressBars.length === 0) {
+            console.warn('ProgressManager: прогресс-бары не найдены');
+            return;
+        }
         this.setupIntersectionObserver();
     }
 
@@ -1235,7 +1296,7 @@ class ProgressManager extends BaseComponent {
 
     setupIntersectionObserver() {
         if (!('IntersectionObserver' in window)) {
-            this.progressBars.forEach(bar => this.animateProgressBar(bar));
+            this.progressBars?.forEach(bar => this.animateProgressBar(bar));
             return;
         }
 
@@ -1251,7 +1312,7 @@ class ProgressManager extends BaseComponent {
             { threshold: 0.3 }
         );
 
-        this.progressBars.forEach(bar => {
+        this.progressBars?.forEach(bar => {
             this.observer.observe(bar);
         });
     }
@@ -1282,9 +1343,19 @@ class ProgressManager extends BaseComponent {
 
     resetAnimations() {
         this.animatedBars.clear();
-        this.progressBars.forEach(bar => {
+        this.progressBars?.forEach(bar => {
             bar.style.width = '0%';
         });
+    }
+
+    destroy() {
+        if (this.observer) {
+            this.observer.disconnect();
+            this.observer = null;
+        }
+        this.progressBars = null;
+        this.animatedBars.clear();
+        super.destroy();
     }
 }
 
@@ -1480,7 +1551,7 @@ class TimeManager extends BaseComponent {
     }
 
     bindEvents() {
-        this.addEventHandler('visibilitychange', this.handleVisibilityChange);
+        this.addEventHandler('visibilitychange', this.handleVisibilityChange, document);
     }
 
     startClock() {
@@ -1512,6 +1583,7 @@ class TimeManager extends BaseComponent {
 
     destroy() {
         clearInterval(this.intervalId);
+        this.timeElement = null;
         super.destroy();
     }
 }
@@ -1535,13 +1607,13 @@ class CertificateModalManager extends BaseComponent {
             if (event.key === 'Escape') {
                 this.closeAllModals();
             }
-        });
+        }, document);
 
         this.addEventHandler('click', (event) => {
             if (event.target.classList.contains('certificate-modal')) {
                 this.closeModal(event.target);
             }
-        });
+        }, document);
 
         const previews = Utils.$$(SELECTORS.CERTIFICATE_PREVIEW);
         previews.forEach(preview => {
@@ -1677,6 +1749,12 @@ class CertificateModalManager extends BaseComponent {
     hasOpenModals() {
         return this.activeModals.size > 0;
     }
+
+    destroy() {
+        this.closeAllModals();
+        this.activeModals.clear();
+        super.destroy();
+    }
 }
 
 // ============================================================================
@@ -1688,11 +1766,12 @@ class CyberCardApp extends EventEmitter {
         super();
         this.components = new Map();
         this.initialized = false;
-        this.version = '3.0.2';
+        this.version = '3.0.3';
         this.loadingScreenManager = new LoadingScreenManager();
 
         this.init().catch(error => {
             console.error('❌ Критическая ошибка инициализации:', error);
+            this.loadingScreenManager.hideLoadingScreen();
         });
     }
 
@@ -1711,8 +1790,9 @@ class CyberCardApp extends EventEmitter {
 
             this.emit('initialized');
         } catch (error) {
+            console.error('App initialization failed:', error);
             this.emit('error', error);
-            throw error;
+            this.loadingScreenManager.hideLoadingScreen();
         }
     }
 
@@ -1732,31 +1812,46 @@ class CyberCardApp extends EventEmitter {
             ['time', new TimeManager()]
         ];
 
-        // Последовательная инициализация компонентов
+        // Обновляем статус загрузки
+        const loadingStatus = document.getElementById('loadingStatus');
+
+        // Загружаем критические компоненты с timeout
+        const criticalComponents = ['notifications', 'navigation', 'typing'];
+        const optionalComponents = ['particles', 'progress', 'contact', 'time', 'certificateModal'];
+
+        // Загружаем критические компоненты
         for (const [name, component] of componentList) {
+            if (!criticalComponents.includes(name)) continue;
+
             try {
-                if (!component.isInitialized) {
-                    await new Promise((resolve, reject) => {
-                        const timeout = setTimeout(() => {
-                            reject(new Error(`Timeout loading component ${name}`));
-                        }, 10000); // Увеличили timeout до 10 секунд
-
-                        component.once('initialized', () => {
-                            clearTimeout(timeout);
-                            resolve();
-                        });
-
-                        component.once('error', (error) => {
-                            clearTimeout(timeout);
-                            reject(error);
-                        });
-                    });
+                if (loadingStatus) {
+                    loadingStatus.textContent = `Загрузка ${name}...`;
                 }
 
+                await this.initializeComponent(name, component, 5000);
                 this.components.set(name, component);
-                console.log(`✅ Компонент ${name} загружен`);
+                console.log(`✅ ${name} загружен`);
             } catch (error) {
-                console.error(`❌ Ошибка загрузки компонента ${name}:`, error);
+                console.error(`❌ Ошибка загрузки критического компонента ${name}:`, error);
+                // Для критических компонентов пробуем дальше
+            }
+        }
+
+        // Загружаем опциональные компоненты
+        for (const [name, component] of componentList) {
+            if (!optionalComponents.includes(name)) continue;
+
+            try {
+                if (loadingStatus) {
+                    loadingStatus.textContent = `Инициализация ${name}...`;
+                }
+
+                await this.initializeComponent(name, component, 3000);
+                this.components.set(name, component);
+                console.log(`✅ ${name} загружен`);
+            } catch (error) {
+                console.warn(`⚠️ Опциональный компонент ${name} не загружен:`, error.message);
+                // Опциональные компоненты не блокируют загрузку
             }
         }
 
@@ -1764,6 +1859,37 @@ class CyberCardApp extends EventEmitter {
         const failed = componentList.length - loaded;
 
         console.info(`📦 Загружено компонентов: ${loaded}/${componentList.length} (ошибок: ${failed})`);
+    }
+
+    async initializeComponent(name, component, timeout) {
+        if (component.isInitialized) {
+            return Promise.resolve();
+        }
+
+        return new Promise((resolve, reject) => {
+            let timeoutId = setTimeout(() => {
+                reject(new Error(`Timeout loading component ${name} (${timeout}ms)`));
+            }, timeout);
+
+            const cleanup = () => {
+                clearTimeout(timeoutId);
+                component.off('initialized', onInitialized);
+                component.off('error', onError);
+            };
+
+            const onInitialized = () => {
+                cleanup();
+                resolve();
+            };
+
+            const onError = (error) => {
+                cleanup();
+                reject(error);
+            };
+
+            component.once('initialized', onInitialized);
+            component.once('error', onError);
+        });
     }
 
     setupGlobalEventHandlers() {
@@ -1779,7 +1905,7 @@ class CyberCardApp extends EventEmitter {
         const notificationManager = this.components.get('notifications');
         if (notificationManager) {
             notificationManager.show(
-                'Произошла неожиданная ошибка. Попробуйте обновить страницу.',
+                'Произошла неожиданная ошибка.',
                 'error',
                 7000
             );

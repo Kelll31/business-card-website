@@ -1,6 +1,6 @@
 /**
  * @fileoverview Визитка пентестера без приватных полей
- * @version 3.0.3
+ * @version 3.0.4
  * @author kelll31
  * @license MIT
  */
@@ -986,7 +986,7 @@ class TypingAnimation extends BaseComponent {
         this.messageIndex = 0;
         this.isVisible = true;
         this.shouldStop = false;
-        this.typingLoopId = null;
+        this.typingTimeoutId = null;
     }
 
     async setup() {
@@ -997,33 +997,39 @@ class TypingAnimation extends BaseComponent {
         }
 
         this.isVisible = !document.hidden;
-        this.startTypingLoop();
+        this.startTypingCycle();
     }
 
     bindEvents() {
         this.addEventHandler('visibilitychange', this.handleVisibilityChange, document);
     }
 
-    async startTypingLoop() {
-        while (!this.shouldStop && this.textElement && this.isVisible) {
+    startTypingCycle() {
+        if (this.shouldStop || !this.isVisible) return;
+        
+        if (this.typingTimeoutId) {
+            clearTimeout(this.typingTimeoutId);
+        }
+
+        this.typingTimeoutId = setTimeout(async () => {
             try {
-                if (!this.isTyping) {
+                if (!this.shouldStop && this.isVisible && this.textElement) {
                     const message = TYPING_MESSAGES[this.messageIndex];
                     await this.typeMessage(message);
                     this.messageIndex = (this.messageIndex + 1) % TYPING_MESSAGES.length;
                     
-                    // Проверяем перед паузой
+                    // Начинаем следующий цикл
                     if (!this.shouldStop && this.isVisible) {
-                        await Utils.sleep(ANIMATION_CONFIG.TYPING_PAUSE);
+                        this.startTypingCycle();
                     }
                 }
             } catch (error) {
                 console.error('TypingAnimation error:', error);
+                if (!this.shouldStop && this.isVisible) {
+                    this.startTypingCycle();
+                }
             }
-            
-            if (this.shouldStop || !this.isVisible) break;
-            await Utils.sleep(50);
-        }
+        }, ANIMATION_CONFIG.TYPING_PAUSE);
     }
 
     async typeMessage(message) {
@@ -1059,10 +1065,13 @@ class TypingAnimation extends BaseComponent {
         
         if (this.isVisible && this.textElement && !this.shouldStop) {
             // Возобновляем анимацию
-            this.startTypingLoop();
+            this.startTypingCycle();
         } else if (!this.isVisible) {
             // Останавливаем текущую анимацию
             this.isTyping = false;
+            if (this.typingTimeoutId) {
+                clearTimeout(this.typingTimeoutId);
+            }
         }
     };
 
@@ -1070,6 +1079,10 @@ class TypingAnimation extends BaseComponent {
         this.shouldStop = true;
         this.isTyping = false;
         this.isVisible = false;
+        if (this.typingTimeoutId) {
+            clearTimeout(this.typingTimeoutId);
+            this.typingTimeoutId = null;
+        }
         if (this.textElement) {
             this.textElement.textContent = '';
         }
@@ -1078,7 +1091,7 @@ class TypingAnimation extends BaseComponent {
     start() {
         this.shouldStop = false;
         this.isVisible = true;
-        this.startTypingLoop();
+        this.startTypingCycle();
     }
 
     destroy() {
@@ -1766,7 +1779,7 @@ class CyberCardApp extends EventEmitter {
         super();
         this.components = new Map();
         this.initialized = false;
-        this.version = '3.0.3';
+        this.version = '3.0.4';
         this.loadingScreenManager = new LoadingScreenManager();
 
         this.init().catch(error => {
